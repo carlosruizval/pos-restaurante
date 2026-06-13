@@ -1,0 +1,9 @@
+
+.env.local
+node_modules/
+.env.local
+dist/cd ..
+git rm -r --cached convex-backend/node_modules
+git add .
+git commit -m "fix: ignorar node_modules en convex-backend"
+git push
