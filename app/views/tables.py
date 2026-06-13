@@ -1,4 +1,5 @@
 import flet as ft
+from components.navbar import NavBar
 
 MOCK_TABLES = [
     {"number": 1, "status": "free", "capacity": 4},
@@ -27,6 +28,10 @@ class TablesView(ft.Column):
         self._pg = pg
         self.navigate = navigate
         self.expand = True
+        self.spacing = 0
+
+        # Navbar en el page
+        self._pg.navigation_bar = NavBar(pg, navigate, current_index=0)
 
         self.controls = [
             self._build_appbar(),
