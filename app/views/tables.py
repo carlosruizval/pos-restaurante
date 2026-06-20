@@ -1,14 +1,6 @@
 import flet as ft
-from components.navbar import NavBar
-
-MOCK_TABLES = [
-    {"number": 1, "status": "free", "capacity": 4},
-    {"number": 2, "status": "occupied", "capacity": 2},
-    {"number": 3, "status": "waiting_payment", "capacity": 6},
-    {"number": 4, "status": "free", "capacity": 4},
-    {"number": 5, "status": "occupied", "capacity": 2},
-    {"number": 6, "status": "free", "capacity": 8},
-]
+from services.table_service import TableService
+from models.table import Table
 
 STATUS_COLOR = {
     "free": ft.Colors.GREEN_400,
@@ -23,15 +15,12 @@ STATUS_LABEL = {
 }
 
 class TablesView(ft.Column):
-    def __init__(self, pg: ft.Page, navigate):
+    def __init__(self, pg: ft.Page, table_service: TableService):
         super().__init__()
         self._pg = pg
-        self.navigate = navigate
+        self._service = table_service
         self.expand = True
         self.spacing = 0
-
-        # Navbar en el page
-        self._pg.navigation_bar = NavBar(pg, navigate, current_index=0)
 
         self.controls = [
             self._build_appbar(),
@@ -76,7 +65,8 @@ class TablesView(ft.Column):
         )
 
     def _build_grid(self):
-        cards = [self._table_card(t) for t in MOCK_TABLES]
+        tables = self._service.get_all()
+        cards = [self._table_card(t) for t in tables]
         return ft.Container(
             expand=True,
             padding=16,
@@ -89,9 +79,9 @@ class TablesView(ft.Column):
             )
         )
 
-    def _table_card(self, table):
-        color = STATUS_COLOR[table["status"]]
-        label = STATUS_LABEL[table["status"]]
+    def _table_card(self, table: Table):
+        color = STATUS_COLOR[table.status]
+        label = STATUS_LABEL[table.status]
         return ft.Container(
             bgcolor=ft.Colors.WHITE,
             border_radius=12,
@@ -103,18 +93,18 @@ class TablesView(ft.Column):
                 alignment=ft.MainAxisAlignment.CENTER,
                 controls=[
                     ft.Icon(ft.Icons.TABLE_RESTAURANT, color=color, size=32),
-                    ft.Text(f"Mesa {table['number']}",
+                    ft.Text(f"Mesa {table.number}",
                             weight=ft.FontWeight.BOLD),
                     ft.Text(label, size=12, color=color),
-                    ft.Text(f"{table['capacity']} personas",
+                    ft.Text(f"{table.capacity} personas",
                             size=11, color=ft.Colors.GREY_500),
                 ]
             )
         )
 
-    def on_table_click(self, table):
+    def on_table_click(self, table: Table):
         snack = ft.SnackBar(
-            content=ft.Text(f"Mesa {table['number']} — {STATUS_LABEL[table['status']]}")
+            content=ft.Text(f"Mesa {table.number} — {STATUS_LABEL[table.status]}")
         )
         self._pg.overlay.append(snack)
         snack.open = True
