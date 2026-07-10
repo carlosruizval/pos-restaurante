@@ -1,3 +1,6 @@
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from models.table import Table
 from services.convex_client import ConvexClient
 
@@ -5,8 +8,8 @@ class TableService:
     def __init__(self, convex: ConvexClient):
         self._convex = convex
 
-    def get_all(self) -> list[Table]:
-        result = self._convex.query("tables:getAll")
+    async def get_all(self) -> list[Table]:
+        result = await self._convex.query("tables:getAll")
         tables = []
         for item in result.get("value", []):
             tables.append(Table(
@@ -17,8 +20,8 @@ class TableService:
             ))
         return tables
 
-    def update_status(self, table_id: str, status: str) -> None:
-        self._convex.mutation("tables:updateStatus", {
+    async def update_status(self, table_id: str, status: str) -> None:
+        await self._convex.mutation("tables:updateStatus", {
             "tableId": table_id,
             "status": status
         })

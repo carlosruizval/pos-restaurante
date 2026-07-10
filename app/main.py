@@ -4,78 +4,25 @@ from views.tables import TablesView
 from views.menu import MenuView
 from views.orders import OrdersView
 from views.reports import ReportsView
+from views.order import OrderView
 from services.auth_service import AuthService
 from services.table_service import TableService
 from services.convex_client import ConvexClient
+from models.app_state import AppState
+from services.order_service import OrderService
+from services.product_service import ProductService
 
 def main(page: ft.Page):
     page.title = "POS Restaurante"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
 
-    # --- Servicios con Convex real ---
     convex = ConvexClient()
+    state = AppState()
     auth_service = AuthService()
     table_service = TableService(convex)
-
-    def route_change(e):
-        page.views.clear()
-
-        if page.route == "/login" or page.route == "/":
-            page.views.append(
-                ft.View(
-                    route="/login",
-                    padding=0,
-                    controls=[LoginView(page, auth_service)]
-                )
-            )
-
-        elif page.route == "/tables":
-            page.views.append(
-                ft.View(
-                    route="/tables",
-                    padding=0,
-                    navigation_bar=_build_navbar(0),
-                    controls=[TablesView(page, table_service)]
-                )
-            )
-
-        elif page.route == "/menu":
-            page.views.append(
-                ft.View(
-                    route="/menu",
-                    padding=0,
-                    navigation_bar=_build_navbar(1),
-                    controls=[MenuView(page)]
-                )
-            )
-
-        elif page.route == "/orders":
-            page.views.append(
-                ft.View(
-                    route="/orders",
-                    padding=0,
-                    navigation_bar=_build_navbar(2),
-                    controls=[OrdersView(page)]
-                )
-            )
-
-        elif page.route == "/reports":
-            page.views.append(
-                ft.View(
-                    route="/reports",
-                    padding=0,
-                    navigation_bar=_build_navbar(3),
-                    controls=[ReportsView(page)]
-                )
-            )
-
-        page.update()
-
-    def view_pop(e):
-        page.views.pop()
-        top_view = page.views[-1]
-        page.go(top_view.route)
+    order_service = OrderService(convex)
+    product_service = ProductService()
 
     def _build_navbar(selected_index: int):
         routes = ["/tables", "/menu", "/orders", "/reports"]
@@ -95,7 +42,7 @@ def main(page: ft.Page):
                 ft.NavigationBarDestination(
                     icon=ft.Icons.MENU_BOOK_OUTLINED,
                     selected_icon=ft.Icons.MENU_BOOK,
-                    label="Menú"
+                    label="Menu"
                 ),
                 ft.NavigationBarDestination(
                     icon=ft.Icons.RECEIPT_LONG_OUTLINED,
@@ -109,6 +56,69 @@ def main(page: ft.Page):
                 ),
             ]
         )
+
+    def route_change(e):
+        page.views.clear()
+        route = page.route
+        print(f"DEBUG ruta: '{route}'")
+
+        if route == "/login" or route == "/":
+            page.views.append(ft.View(
+                route="/login",
+                padding=0,
+                controls=[LoginView(page, auth_service)]
+            ))
+
+        elif route == "/tables":
+            page.views.append(ft.View(
+                route="/tables",
+                padding=0,
+                navigation_bar=_build_navbar(0),
+                controls=[TablesView(page, state, table_service)]
+            ))
+
+        elif route.startswith("/tables/") and route.endswith("/order"):
+            table_id = route.split("/")[2]
+            print(f"DEBUG: abriendo pedido para mesa {table_id}")
+            page.views.append(ft.View(
+                route=route,
+                padding=0,
+                controls=[OrderView(
+                    page, state, table_id,
+                    order_service, product_service
+                )]
+            ))
+
+        elif route == "/menu":
+            page.views.append(ft.View(
+                route="/menu",
+                padding=0,
+                navigation_bar=_build_navbar(1),
+                controls=[MenuView(page)]
+            ))
+
+        elif route == "/orders":
+            page.views.append(ft.View(
+                route="/orders",
+                padding=0,
+                navigation_bar=_build_navbar(2),
+                controls=[OrdersView(page)]
+            ))
+
+        elif route == "/reports":
+            page.views.append(ft.View(
+                route="/reports",
+                padding=0,
+                navigation_bar=_build_navbar(3),
+                controls=[ReportsView(page)]
+            ))
+
+        page.update()
+
+    def view_pop(e):
+        page.views.pop()
+        top_view = page.views[-1]
+        page.go(top_view.route)
 
     page.on_route_change = route_change
     page.on_view_pop = view_pop

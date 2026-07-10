@@ -15,18 +15,35 @@ STATUS_LABEL = {
 }
 
 class TablesView(ft.Column):
-    def __init__(self, pg: ft.Page, table_service: TableService):
+    def __init__(self, pg: ft.Page, state, table_service: TableService):
         super().__init__()
         self._pg = pg
+        self._state = state
         self._service = table_service
         self.expand = True
         self.spacing = 0
 
+        self._grid = ft.GridView(
+            runs_count=3,
+            max_extent=160,
+            spacing=12,
+            run_spacing=12,
+            expand=True,
+        )
+
+        self._loading = ft.Container(
+            expand=True,
+            alignment=ft.Alignment(0, 0),
+            content=ft.ProgressRing()
+        )
+
         self.controls = [
             self._build_appbar(),
             self._build_legend(),
-            self._build_grid(),
+            self._loading,
         ]
+
+        self._pg.run_task(self._load_tables)
 
     def _build_appbar(self):
         return ft.Container(
@@ -64,20 +81,13 @@ class TablesView(ft.Column):
             ], spacing=16)
         )
 
-    def _build_grid(self):
-        tables = self._service.get_all()
-        cards = [self._table_card(t) for t in tables]
-        return ft.Container(
-            expand=True,
-            padding=16,
-            content=ft.GridView(
-                runs_count=3,
-                max_extent=160,
-                spacing=12,
-                run_spacing=12,
-                controls=cards,
-            )
+    async def _load_tables(self):
+        tables = await self._service.get_all()
+        self._grid.controls = [self._table_card(t) for t in tables]
+        self.controls[-1] = ft.Container(
+            expand=True, padding=16, content=self._grid
         )
+        self._pg.update()
 
     def _table_card(self, table: Table):
         color = STATUS_COLOR[table.status]
@@ -103,9 +113,4 @@ class TablesView(ft.Column):
         )
 
     def on_table_click(self, table: Table):
-        snack = ft.SnackBar(
-            content=ft.Text(f"Mesa {table.number} — {STATUS_LABEL[table.status]}")
-        )
-        self._pg.overlay.append(snack)
-        snack.open = True
-        self._pg.update()
+        self._pg.go(f"/tables/{table.id}/order")
