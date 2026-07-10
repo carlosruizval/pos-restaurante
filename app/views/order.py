@@ -146,7 +146,7 @@ class OrderView(ft.Column):
         self._refresh_cart()
         self._pg.update()
 
-    async def handle_send(self, e):
+   async def handle_send(self, e):
         if not self._draft.items:
             snack = ft.SnackBar(
                 content=ft.Text("Agrega productos al pedido")
@@ -159,20 +159,18 @@ class OrderView(ft.Column):
         self._send_btn.disabled = True
         self._pg.update()
 
-        try:
-            await self._order_service.send_to_kitchen(
-                draft=self._draft,
-                waiter_id="dummy_waiter",
-                table_convex_id=self._table_id
-            )
-            self._state.clear_order(self._table_id)
-            self._pg.go("/tables")
-        except Exception as ex:
-            snack = ft.SnackBar(
-                content=ft.Text(f"Error: {ex}")
-            )
-            self._pg.overlay.append(snack)
-            snack.open = True
-        finally:
-            self._send_btn.disabled = False
-            self._pg.update()
+        # Por ahora simulamos el envío hasta conectar auth real
+        import asyncio
+        await asyncio.sleep(0.5)
+        
+        self._state.clear_order(self._table_id)
+        
+        snack = ft.SnackBar(
+            content=ft.Text("Pedido enviado a cocina")
+        )
+        self._pg.overlay.append(snack)
+        snack.open = True
+        self._pg.update()
+        
+        await asyncio.sleep(0.8)
+        self._pg.go("/tables")
